@@ -14,9 +14,11 @@ public class CameraFollow : MonoBehaviour
     transform.position = target.position + offset;
   }
 
-  // Get the Player game object by Tag, if possible:
-  // update the target transform information
-  // otherwise, log an error message
+  /* Get the Player game object by Tag, if possible:
+     update the target transform information
+     otherwise, log an error message
+     Call in the Start()
+  */
   void GetPlayerTransform () {
     GameObject player = GameObject.FindWithTag("Player");
     if (player != null) {

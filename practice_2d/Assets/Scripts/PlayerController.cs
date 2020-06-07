@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -10,6 +11,8 @@ public class PlayerController : MonoBehaviour
     private State state = State.idle;
     private Collider2D coll;
     private LayerMask ground;
+    private int score = 0;
+    private Text scoreValue;
 
     void Start()
     {
@@ -17,13 +20,22 @@ public class PlayerController : MonoBehaviour
       anim = GetComponent<Animator> ();
       coll = GetComponent<Collider2D> ();
       ground = LayerMask.GetMask("Ground");
+      GetUIField();
     }
     // Update is called once per frame
     void Update()
     {
       Move();
-      VelocityState();
+      SetCharacterState();
       anim.SetInteger("state", (int)state);
+      scoreValue.text = score.ToString();
+    }
+
+    void OnTriggerEnter2D(Collider2D collision) {
+      if (collision.tag == "Collectibles") {
+        Destroy(collision.gameObject);
+        score += 1;
+      }
     }
 
     /*
@@ -61,7 +73,7 @@ public class PlayerController : MonoBehaviour
       jumping -> falling (jumping state is triggered in Move())
       falling -> idle
     */
-    void VelocityState() {
+    void SetCharacterState() {
 
       switch(state) {
         case State.idle:
@@ -90,6 +102,20 @@ public class PlayerController : MonoBehaviour
         default:
           state = State.idle;
           break;
+      }
+    }
+
+    /*
+      Retrieves the Text object and stores it as a score value variable
+      if the object is not found, log an error message
+      Call in the Start()
+    */
+    void GetUIField () {
+      GameObject scoreObj = GameObject.FindWithTag("ScoreValue");
+      if (scoreObj != null) {
+        scoreValue = scoreObj.GetComponent<Text>();
+      } else {
+        Debug.Log("A UI object is not found.")
       }
     }
 }
