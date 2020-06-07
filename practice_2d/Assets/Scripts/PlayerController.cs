@@ -7,36 +7,37 @@ public class PlayerController : MonoBehaviour
 {
     private Rigidbody2D rb;
     private Animator anim;
-    private enum State {idle, running, jumping, falling}
+    private int score = 0;
+    private Text scoreValue;
+    private enum State {idle, running, jumping, falling, hurt, dead}
     private State state = State.idle;
     private Collider2D coll;
     private LayerMask ground;
-    private int score = 0;
-    private Text scoreValue;
+    private int health;
+    private float hurtForce = 8f;
+    private float push = 2f;
 
-    void Start()
+    void Start ()
     {
       rb = GetComponent<Rigidbody2D> ();
       anim = GetComponent<Animator> ();
-      coll = GetComponent<Collider2D> ();
       ground = LayerMask.GetMask("Ground");
+      coll = GetComponent<Collider2D> ();
       GetUIField();
+      health = 2;
     }
     // Update is called once per frame
-    void Update()
+    void Update ()
     {
-      Move();
+      if (state != State.hurt) {
+        Move();
+      }
       SetCharacterState();
       anim.SetInteger("state", (int)state);
       scoreValue.text = score.ToString();
     }
 
-    void OnTriggerEnter2D(Collider2D collision) {
-      if (collision.tag == "Collectibles") {
-        Destroy(collision.gameObject);
-        score += 1;
-      }
-    }
+    /* ================= Movement ================= */
 
     /*
       Performs move operations:
@@ -44,7 +45,7 @@ public class PlayerController : MonoBehaviour
       flips the character sprite accordingly
       handles the jump making when an appropriate key is pressed
     */
-    void Move() {
+    void Move () {
       float hDir = Input.GetAxis("Horizontal");
       float speed = 450f;
       float jumpForce = 10f;
@@ -66,6 +67,8 @@ public class PlayerController : MonoBehaviour
       }
     }
 
+    /* ================= State ================= */
+
     /*
       A finite state machine that handles the character State based on the conds
       idle -> running,
@@ -73,9 +76,17 @@ public class PlayerController : MonoBehaviour
       jumping -> falling (jumping state is triggered in Move())
       falling -> idle
     */
-    void SetCharacterState() {
+    void SetCharacterState () {
 
       switch(state) {
+        case State.hurt:
+          if (health == 0) {
+            state = State.dead;
+          }
+          if (coll.IsTouchingLayers(ground)) {
+            state = State.idle;
+          }
+            break;
         case State.idle:
           if (Mathf.Abs(rb.velocity.x) > Mathf.Epsilon) {
             state = State.running;
@@ -84,9 +95,8 @@ public class PlayerController : MonoBehaviour
         case State.running:
           if (Mathf.Abs(rb.velocity.x) > Mathf.Epsilon) {
             state = State.running;
-          }
-          else {
-            state = State.idle;
+          } else {
+              state = State.idle;
           }
           break;
         case State.jumping:
@@ -105,6 +115,40 @@ public class PlayerController : MonoBehaviour
       }
     }
 
+    /* ================= Collisions ================= */
+
+    // Handles the collision with collectible items
+    void OnTriggerEnter2D (Collider2D collision) {
+      if (collision.tag == "Collectibles") {
+        Destroy(collision.gameObject);
+        score += 1;
+      }
+    }
+
+    // Handles the collision with other (ex. Enemy) entities
+    void OnCollisionEnter2D (Collision2D other) {
+      // jumping on the enemy will kill it
+      if (other.gameObject.tag == "Enemy") {
+        if (state == State.falling) {
+          Destroy(other.gameObject);
+        } else if (other.gameObject.transform.position.x > transform.position.x) {
+          // the enemy is to the right of the player
+          // the player will be pushed to the left
+          state = State.hurt;
+          rb.velocity = new Vector2(-push, hurtForce);
+          //health -= 1;
+        } else {
+          // the enemy is to the left of the player
+          // the player will be pushed to the right
+          state = State.hurt;
+          rb.velocity = new Vector2(push, hurtForce);
+          //health -= 1;
+        }
+      }
+    }
+
+    /* ================= ScoringUI ================= */
+
     /*
       Retrieves the Text object and stores it as a score value variable
       if the object is not found, log an error message
@@ -115,7 +159,7 @@ public class PlayerController : MonoBehaviour
       if (scoreObj != null) {
         scoreValue = scoreObj.GetComponent<Text>();
       } else {
-        Debug.Log("A UI object is not found.")
+          Debug.Log("A UI object is not found.");
+        }
       }
-    }
 }
