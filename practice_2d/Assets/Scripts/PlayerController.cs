@@ -48,7 +48,6 @@ public class PlayerController : MonoBehaviour
     void Move () {
       float hDir = Input.GetAxis("Horizontal");
       float speed = 450f;
-      float jumpForce = 10f;
 
       // moving left
       if (hDir < 0) {
@@ -62,9 +61,14 @@ public class PlayerController : MonoBehaviour
       }
       // allowing the jump to happen only on the ground
       if (Input.GetButtonDown("Jump") && coll.IsTouchingLayers(ground)) {
-        rb.velocity = new Vector2 (rb.velocity.x, jumpForce);
-        state = State.jumping;
+        Jump(10f);
       }
+    }
+
+    // Abstracts the jump movement into a separate function
+    void Jump(float jumpForce) {
+      rb.velocity = new Vector2 (rb.velocity.x, jumpForce);
+      state = State.jumping;
     }
 
     /* ================= State ================= */
@@ -121,7 +125,12 @@ public class PlayerController : MonoBehaviour
     void OnTriggerEnter2D (Collider2D collision) {
       if (collision.tag == "Collectibles") {
         Destroy(collision.gameObject);
-        score += 1;
+        // TODO: find a better way to identify the object
+        if (collision.name == "SpecialBerry") {
+          score += 3;
+        } else {
+          score += 1;
+        }
       }
     }
 
@@ -131,6 +140,7 @@ public class PlayerController : MonoBehaviour
       if (other.gameObject.tag == "Enemy") {
         if (state == State.falling) {
           Destroy(other.gameObject);
+          Jump(5f);
         } else if (other.gameObject.transform.position.x > transform.position.x) {
           // the enemy is to the right of the player
           // the player will be pushed to the left
